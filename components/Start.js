@@ -1,6 +1,7 @@
 // components/Start.js
 import React, { useState } from 'react';
 import { View, TextInput, Text, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
+import { KeyboardAvoidingView, Platform } from 'react-native';
 
 export default function Start({ navigation }) {
     const [name, setName] = useState('');
@@ -14,7 +15,10 @@ export default function Start({ navigation }) {
     const backgroundImage = require('../assets/background-image.png');
 
     return (
-        <View style={styles.container}>
+        <KeyboardAvoidingView 
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
           <ImageBackground source={backgroundImage} resizeMode="cover" style={styles.backgroundImage}>
             <Text style={styles.title}>Grom Chat</Text>
             <View style={styles.box}>
@@ -55,7 +59,7 @@ export default function Start({ navigation }) {
                 
             </View>
             </ImageBackground>
-        </View>
+        </KeyboardAvoidingView>
     );
 }
 

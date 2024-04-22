@@ -1,7 +1,8 @@
 // Import necessary libraries and components
 import React, { useState, useEffect, useLayoutEffect } from 'react';
-import { View, StyleSheet, Platform, KeyboardAvoidingView } from 'react-native';
+import { StyleSheet, Platform, KeyboardAvoidingView } from 'react-native';
 import { GiftedChat, Bubble } from 'react-native-gifted-chat';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Define the Chat component with props received from navigation
 const Chat = ({ route, navigation }) => {
@@ -67,17 +68,22 @@ const Chat = ({ route, navigation }) => {
 
     // Render the GiftedChat component and handle keyboard behavior
     return (
-        <View style={[styles.container, { backgroundColor }]}>
-            <GiftedChat
-                messages={messages}
-                renderBubble={renderBubble}
-                onSend={messages => onSend(messages)}
-                user={{
-                    _id: 1
-                }}
-            />
-            {Platform.OS === "ios" && <KeyboardAvoidingView behavior="padding" />}
-        </View>
+        <SafeAreaView style={[styles.container, { backgroundColor }]}>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                keyboardVerticalOffset={Platform.OS === "ios" ? -200 : 0}
+            >
+                <GiftedChat
+                    messages={messages}
+                    renderBubble={renderBubble}
+                    onSend={messages => onSend(messages)}
+                    user={{
+                        _id: 1,
+                    }}
+                />
+            </KeyboardAvoidingView>
+        </SafeAreaView>
     );
 };
 
