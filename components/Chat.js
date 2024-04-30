@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useLayoutEffect } from "react";
 import { StyleSheet, Platform, KeyboardAvoidingView } from "react-native";
-import { GiftedChat, Bubble } from "react-native-gifted-chat";
+import { GiftedChat, Bubble, InputToolbar } from "react-native-gifted-chat";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
   collection,
@@ -12,9 +14,20 @@ import {
 } from "firebase/firestore";
 
 // Define the Chat component with props received from navigation
-const Chat = ({ route, navigation, db }) => {
+const Chat = ({ route, navigation, db, isConnected }) => {
   const { name, backgroundColor, _id } = route.params;
   const [messages, setMessages] = useState([]);
+
+  // Call this function if the isConnected prop turns out to be false in useEffect()
+  const loadCachedMessages = async () => {
+    try {
+      const cachedMessages = await AsyncStorage.getItem("messages");
+      setMessages(cachedMessages ? JSON.parse(cachedMessages) : []);
+    } catch (error) {
+      console.error("Failed to load or parse cached messages:", error);
+      setMessages([]);
+    }
+  };
 
   // Function to handle sending new messages and save them to Firestore
   const onSend = async (newMessages = []) => {
@@ -25,11 +38,17 @@ const Chat = ({ route, navigation, db }) => {
         name: name, // Встановлюємо ім'я відправника
       },
     };
+
     try {
       await addDoc(collection(db, "messages"), messageToSend);
     } catch (error) {
       console.error("Error adding document: ", error);
     }
+  };
+
+  const renderInputToolbar = (props) => {
+    if (isConnected) return <InputToolbar {...props} />;
+    else return null;
   };
 
   // Customize the chat bubbles' styling
@@ -46,23 +65,30 @@ const Chat = ({ route, navigation, db }) => {
       }}
     />
   );
-
+  let unsubMessages;
   // Initialize messages state when component mounts
   useEffect(() => {
-    const messagesRef = collection(db, "messages");
-    const q = query(messagesRef, orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedMessages = snapshot.docs.map((doc) => ({
-        _id: doc.id,
-        text: doc.data().text,
-        createdAt: doc.data().createdAt.toDate(),
-        user: doc.data().user,
-      }));
-      setMessages(fetchedMessages);
-    });
+    let unsubscribe = () => {}; // Default to a no-op function
 
-    return () => unsubscribe();
-  }, [db]);
+    if (isConnected) {
+      const messagesRef = collection(db, "messages");
+      const q = query(messagesRef, orderBy("createdAt", "desc"));
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        const fetchedMessages = snapshot.docs.map((doc) => ({
+          _id: doc.id,
+          text: doc.data().text,
+          createdAt: doc.data().createdAt.toDate(),
+          user: doc.data().user,
+        }));
+        setMessages(fetchedMessages);
+        AsyncStorage.setItem("messages", JSON.stringify(fetchedMessages));
+      });
+    } else {
+      loadCachedMessages();
+    }
+
+    return () => unsubscribe(); // Clean up the subscription
+  }, [isConnected, db]);
 
   // Update navigation options dynamically
   useEffect(() => {
